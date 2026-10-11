@@ -2,14 +2,19 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>匿名聊天室 #4471</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+  }
   body {
     background: #0d0f12; color: #c9d1d9;
     font-family: "SF Mono", Consolas, monospace;
-    height: 100vh; display: flex; flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    display: flex; flex-direction: column;
     overflow: hidden;
   }
   header {
@@ -27,7 +32,9 @@
   }
   header .reset-btn:hover { color: #c9d1d9; border-color: #6e7681; }
   #log {
-    flex: 1; overflow-y: auto; padding: 16px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto; padding: 16px;
     display: flex; flex-direction: column; gap: 12px;
     position: relative;
   }
@@ -56,14 +63,21 @@
     border-color: #58a6ff;
   }
 
-  #bar { display: flex; border-top: 1px solid #21262d; flex-shrink: 0; }
+  #bar {
+    display: flex;
+    border-top: 1px solid #21262d;
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
   #in {
     flex: 1; background: transparent; border: 0; outline: 0;
     color: #c9d1d9; font: inherit; padding: 14px 16px;
+    min-width: 0;
   }
   #send {
     background: #238636; color: #fff; border: 0; padding: 0 22px;
     font: inherit; cursor: pointer;
+    flex-shrink: 0;
   }
   #send:hover { background: #2ea043; }
 
@@ -323,7 +337,7 @@ const SCRIPT = {
   opening: `大哥们在么，我哥最近……不太对劲。嘴里总是念叨着什么，情绪也变得很多，虽说他确实快高考了，但也不至于这样吧
 我把我哥的<a href="https://xuk001.github.io/limarg/" target="_blank" rel="noopener">学校网址</a>和他的<a href="https://xuk001.github.io/treehole/" target="_blank" rel="noopener">动态空间</a>发给你了，我和他同个中学但完全不知道发生什么。
 他的账号密码应该是他比较重要的日子。比如生日？
-对了，我哥叫林凯，你知道我叫什么名字吗？`,
+对了，你知道我叫什么名字吗？`,
 
   stages: [
     {
@@ -340,7 +354,7 @@ const SCRIPT = {
     },
     {
       keys: ["实验楼"],
-      reply: "实验楼……对，他最近总往那儿跑。\n\n我到了。\n十层楼，晚上还有几个窗口亮着灯。\n我不敢上去，只能贴着墙在楼下站着。\n\n可我站在楼下才发现——\n这么大一栋楼，一层几十间教室。\n他那天被带去哪一间，我根本不知道。\n\n你能帮我查一下吗？\n"
+      reply: "实验楼……对，他最近总往那儿跑。\n\n我到了。\n十层楼，晚上还有几个窗口亮着灯。\n我不敢上去，只能贴着墙在楼下站着。\n\n可我站在楼下才发现——\n这么大的一栋楼，一层几十间教室。\n他那天被带去哪一间，我根本不知道。\n\n你能帮我猜一下吗？\n他高三（2）班，实验楼有固定的自习教室。"
     },
     {
       keys: ["202教室", "202"],
@@ -585,7 +599,6 @@ function ending2() {
   next();
 }
 
-/* 红字洪水：数量 1040，从四周缓慢向中心聚拢 */
 function startRedFlood() {
   const overlay = document.createElement('div');
   overlay.className = 'red-flood-overlay';
@@ -647,7 +660,6 @@ function startRedFlood() {
   setTimeout(startWhiteSequence, 8500);
 }
 
-/* 白色消息序列 */
 function startWhiteSequence() {
   const flood = document.getElementById('redFlood');
   if (flood) {
@@ -725,7 +737,6 @@ function startWhiteSequence() {
    转场 → 警方通报
    ============================================================ */
 function transitionToPolice(variant) {
-  // 深蓝幕布，颜色与警方通报背景一致，做出"沉入"的感觉
   const curtain = document.createElement('div');
   curtain.style.cssText =
     'position:fixed;inset:0;' +
@@ -741,9 +752,7 @@ function transitionToPolice(variant) {
   });
 
   setTimeout(() => {
-    // 幕布全黑后挂载警方通报
     showPoliceReport(variant);
-    // 通报淡入
     const police = document.getElementById('policeOverlay');
     if (police) {
       police.style.opacity = '0';
@@ -752,7 +761,6 @@ function transitionToPolice(variant) {
         police.style.opacity = '1';
       });
     }
-    // 幕布淡出
     setTimeout(() => {
       curtain.style.opacity = '0';
       setTimeout(() => curtain.remove(), 1100);
