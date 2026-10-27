@@ -6,9 +6,7 @@
 <title>匿名聊天室 #4471</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    height: 100%;
-  }
+  html, body { height: 100%; }
   body {
     background: #0d0f12; color: #c9d1d9;
     font-family: "SF Mono", Consolas, monospace;
@@ -42,6 +40,19 @@
   .them { align-self: flex-start; }
   .me   { align-self: flex-end; text-align: right; color: #7ee787; }
   .sys  { align-self: center; color: #6e7681; font-size: 12px; font-style: italic; }
+  .notice {
+    align-self: center;
+    text-align: center;
+    max-width: 92%;
+    color: #7ee787;
+    font-size: 12.5px;
+    line-height: 1.8;
+    padding: 10px 14px;
+    border: 1px dashed rgba(126,231,135,.4);
+    border-radius: 6px;
+    background: rgba(126,231,135,.05);
+    font-style: normal;
+  }
   .end  { align-self: center; text-align: center; color: #f0883e; font-size: 15px; line-height: 2; margin-top: 20px; }
   .name { font-size: 11px; color: #6e7681; margin-bottom: 3px; }
   .msg a { color: #58a6ff; text-decoration: underline; word-break: break-all; }
@@ -115,6 +126,8 @@
   .red-flood-overlay {
     position: fixed; inset: 0; pointer-events: none;
     z-index: 500; overflow: hidden;
+    transition: transform 1.5s cubic-bezier(.2,.8,.4,1), opacity 1.2s ease;
+    transform-origin: center;
   }
   .red-flood-overlay span {
     position: absolute;
@@ -122,14 +135,21 @@
     color: #c0392b;
     font-weight: 700;
     white-space: nowrap;
-    text-shadow: 0 0 10px rgba(192,57,43,.9);
-    will-change: transform, opacity;
+    text-shadow: 0 0 8px rgba(192,57,43,.85);
     transform: translate(-50%, -50%) translate(var(--sx), var(--sy));
-    transition: transform 9s cubic-bezier(.45,.05,.55,.95), opacity .6s;
     opacity: 0;
+    animation: floodIn 2.8s cubic-bezier(.22,.68,.35,1) forwards;
   }
-  .red-flood-overlay span.active {
-    opacity: 1;
+  @keyframes floodIn {
+    0% {
+      transform: translate(-50%, -50%) translate(var(--sx), var(--sy));
+      opacity: 0;
+    }
+    12% { opacity: 1; }
+    100% {
+      transform: translate(-50%, -50%) translate(var(--tx), var(--ty));
+      opacity: 1;
+    }
   }
 
   .white-overlay {
@@ -330,14 +350,11 @@
 </div>
 
 <script>
-/* ============================================================
-   剧本
-   ============================================================ */
 const SCRIPT = {
-  opening: `大哥们在么，我哥最近……不太对劲。嘴里总是念叨着什么，情绪也变得很多，虽说他确实快高考了，但也不至于这样吧
-我把我哥的<a href="https://limarg-box.github.io/jincaizhongxue/" target="_blank" rel="noopener">学校网址</a>和他的<a href="https://limARG-box.github.io/treehole/" target="_blank" rel="noopener">动态空间</a>发给你了，我和他同个中学但完全不知道发生什么。
+  opening: `大哥们在么，我哥最近……不太对劲。嘴里总是念叨着什么，情绪也变得很多，虽说他确实快高考了，但也不至于这样吧。
+我把我哥的<a href="https://xuk001.github.io/limarg/" target="_blank" rel="noopener">学校网址</a>和他的<a href="https://xuk001.github.io/treehole/" target="_blank" rel="noopener">动态空间</a>发给你了，我和他同个中学但完全不知道发生什么。
 他的账号密码应该是他比较重要的日子。比如生日？
-对了，你知道我叫什么名字吗？`,
+对了，我哥叫林凯，你知道我叫什么名字吗？`,
 
   stages: [
     {
@@ -373,9 +390,6 @@ const SCRIPT = {
   ]
 };
 
-/* ============================================================
-   引擎基础
-   ============================================================ */
 const log = document.getElementById('log');
 const inp = document.getElementById('in');
 const send = document.getElementById('send');
@@ -406,9 +420,6 @@ const WHITE_MSGS = [
   '这是我… 最后的赎罪了…'
 ];
 
-/* ============================================================
-   基础工具
-   ============================================================ */
 function escapeHTML(s) {
   return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
@@ -434,9 +445,6 @@ function closeZoom() {
   document.getElementById('imgModal').classList.remove('show');
 }
 
-/* ============================================================
-   分段发送
-   ============================================================ */
 function sendSegments(text, opts, onDone) {
   const parts = String(text).split(/\n\n+/).filter(s => s.trim().length);
   let i = 0;
@@ -503,9 +511,6 @@ function finish() {
   }, 1600);
 }
 
-/* ============================================================
-   handle
-   ============================================================ */
 function handle(input) {
   if (ended) return;
   const t = input.trim();
@@ -569,9 +574,6 @@ function handle(input) {
   }, 900 + Math.random() * 800);
 }
 
-/* ============================================================
-   结局2
-   ============================================================ */
 function ending2() {
   let i = 0;
 
@@ -609,68 +611,60 @@ function startRedFlood() {
   const W = window.innerWidth;
   const H = window.innerHeight;
 
-  const items = [];
+  const total = 800;
+  const batch = 50;
+  const spread = Math.max(W, H) * 1.4;
+  let created = 0;
 
-  for (let i = 0; i < 1040; i++) {
-    const span = document.createElement('span');
-    span.textContent = words[Math.floor(Math.random() * words.length)];
+  function createBatch() {
+    const end = Math.min(created + batch, total);
+    const frag = document.createDocumentFragment();
 
-    const side = Math.floor(Math.random() * 4);
-    let sx, sy;
-    switch (side) {
-      case 0:
-        sx = (Math.random() - .5) * W * 1.5;
-        sy = -H * 0.85 - Math.random() * 120;
-        break;
-      case 1:
-        sx = W * 0.85 + Math.random() * 120;
-        sy = (Math.random() - .5) * H * 1.5;
-        break;
-      case 2:
-        sx = (Math.random() - .5) * W * 1.5;
-        sy = H * 0.85 + Math.random() * 120;
-        break;
-      default:
-        sx = -W * 0.85 - Math.random() * 120;
-        sy = (Math.random() - .5) * H * 1.5;
-        break;
+    for (let i = created; i < end; i++) {
+      const span = document.createElement('span');
+      span.textContent = words[Math.floor(Math.random() * words.length)];
+
+      const side = Math.floor(Math.random() * 4);
+      let sx, sy;
+      switch (side) {
+        case 0: sx = (Math.random() - 0.5) * W * 1.6; sy = -spread; break;
+        case 1: sx = spread; sy = (Math.random() - 0.5) * H * 1.6; break;
+        case 2: sx = (Math.random() - 0.5) * W * 1.6; sy = spread; break;
+        default: sx = -spread; sy = (Math.random() - 0.5) * H * 1.6; break;
+      }
+
+      const tx = (Math.random() - 0.5) * W * 0.9;
+      const ty = (Math.random() - 0.5) * H * 0.9;
+
+      span.style.setProperty('--sx', sx + 'px');
+      span.style.setProperty('--sy', sy + 'px');
+      span.style.setProperty('--tx', tx + 'px');
+      span.style.setProperty('--ty', ty + 'px');
+      span.style.fontSize = (12 + Math.random() * 22) + 'px';
+      span.style.animationDelay = (Math.random() * 0.8) + 's';
+
+      frag.appendChild(span);
     }
 
-    const tx = (Math.random() - .5) * W * 0.75;
-    const ty = (Math.random() - .5) * H * 0.75;
+    overlay.appendChild(frag);
+    created = end;
 
-    span.style.setProperty('--sx', sx + 'px');
-    span.style.setProperty('--sy', sy + 'px');
-    span.style.fontSize = (12 + Math.random() * 22) + 'px';
-    span.style.transitionDuration = (8 + Math.random() * 4) + 's';
-    span.style.transitionDelay = (Math.random() * 0.6) + 's';
-
-    overlay.appendChild(span);
-    items.push({ el: span, tx, ty });
+    if (created < total) {
+      requestAnimationFrame(createBatch);
+    }
   }
 
-  requestAnimationFrame(() => {
-    items.forEach(item => {
-      item.el.classList.add('active');
-      item.el.style.transform =
-        'translate(-50%, -50%) translate(' + item.tx + 'px, ' + item.ty + 'px)';
-    });
-  });
+  createBatch();
 
-  setTimeout(startWhiteSequence, 15000);
+  setTimeout(startWhiteSequence, 4300);
 }
 
 function startWhiteSequence() {
   const flood = document.getElementById('redFlood');
   if (flood) {
-    flood.querySelectorAll('span').forEach(s => {
-      s.style.transition = 'transform 2s cubic-bezier(.2,.8,.4,1), opacity 1.8s ease';
-      const cur = s.style.transform;
-      s.style.transform = cur.replace(/translate\((-?[\d.]+)px, (-?[\d.]+)px\)$/, (m, x, y) => {
-        return 'translate(' + (x * 3.2) + 'px, ' + (y * 3.2) + 'px)';
-      });
-      s.style.opacity = '0';
-    });
+    flood.style.transform = 'scale(2.2)';
+    flood.style.opacity = '0';
+    setTimeout(() => flood.remove(), 1600);
   }
 
   setTimeout(() => shakeStop(), 600);
@@ -733,9 +727,6 @@ function startWhiteSequence() {
   advance();
 }
 
-/* ============================================================
-   转场 → 警方通报
-   ============================================================ */
 function transitionToPolice(variant) {
   const curtain = document.createElement('div');
   curtain.style.cssText =
@@ -768,9 +759,6 @@ function transitionToPolice(variant) {
   }, 1050);
 }
 
-/* ============================================================
-   警方通报
-   ============================================================ */
 function showPoliceReport(variant) {
   inp.disabled = true;
   send.disabled = true;
@@ -819,22 +807,17 @@ function showPoliceReport(variant) {
   overlay.scrollTop = 0;
 }
 
-/* ============================================================
-   重置
-   ============================================================ */
 function resetChat() {
   location.reload();
 }
 
-/* ============================================================
-   启动
-   ============================================================ */
 send.onclick = () => { handle(inp.value); inp.value = ''; };
 inp.addEventListener('keydown', e => {
   if (e.key === 'Enter') { handle(inp.value); inp.value = ''; }
 });
 
 setTimeout(() => {
+  add('游玩须知：该网页及其衍生皆为虚构，仅做 arg 游戏讨论，请勿代入生活。该 arg 灵感来源于「青苗中学 arg」，如有雷同，全是作者的错。推荐使用浏览器游玩，否则可能会缺失内容。', 'notice');
   add('系统：已连接到匿名频道', 'sys');
   setTimeout(() => add(SCRIPT.opening, 'them', '', true), 800);
 }, 400);
